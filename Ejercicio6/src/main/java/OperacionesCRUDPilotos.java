@@ -26,7 +26,6 @@ public class OperacionesCRUDPilotos {
         //Ejecutamos la sentencia DML y recogemos el número de filas afectadas, si quisiéramos utilizarlo a posteriori
         int filasAfectadas = insercion.executeUpdate();
         System.out.println("Filas afectadas: " + filasAfectadas);
-        insercion.close();
         System.out.println("Piloto creado con éxito.");
         insercion.close();
     }
@@ -58,7 +57,6 @@ public class OperacionesCRUDPilotos {
     }
     public List<Piloto> LeerPilotos(Connection conexion) throws SQLException {//LeerPilotos(), que devuelva un listado completo de objetos Piloto
         List<Piloto> listaPilotos = new ArrayList<>();
-        Piloto p ;
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         String consultaSQL = "SELECT code, forename, surname, dob, nationality, url " +
@@ -99,33 +97,14 @@ public class OperacionesCRUDPilotos {
         int filasAfectadas = insercion.executeUpdate();
 
         System.out.println("Filas afectadas: " + filasAfectadas);
-
-        // Comprobamos los cambios realizados en la tabla drivers
-        String consultaActualizada = "SELECT * FROM drivers WHERE driverid = ?";
-        PreparedStatement consulta = conexion.prepareStatement(consultaActualizada);
-        consulta.setInt(1, p.getDriverid());
-        ResultSet resultados = consulta.executeQuery();
-
-        System.out.println("--------------------------------------------------------------------");
-        System.out.println("Datos actuales del piloto después de la actualización: ");
-
-        while (resultados.next()) {
-            System.out.print(
-                    "ID: "+ resultados.getInt("driverid") +
-                            "\nCodigo: "+ resultados.getString("code") +
-                            "\nNombre: "+ resultados.getString("forename") +
-                            "\nApellido: "+ resultados.getString("surname") +
-                            "\nFecha de nacimiento: "+ resultados.getString("dob") +
-                            "\nNacionalidad: "+ resultados.getString("nationality") +
-                            "\nURL: "+ resultados.getString("url"));
-        }
-
         insercion.close();
     }
+
     public void BorrarPiloto(Piloto p, Connection conexion) throws SQLException {
         String borradoSQL = "DELETE FROM drivers WHERE driverid = ?";
         PreparedStatement borrado = conexion.prepareStatement(borradoSQL);
         borrado.setInt(1, p.getDriverid());
+
         int filasAfectadas = borrado.executeUpdate();
 
         System.out.println("Filas afectadas: " + filasAfectadas);
@@ -137,10 +116,11 @@ public class OperacionesCRUDPilotos {
     }
     public void MostrarClasificacionPiloto(Connection conexion) throws SQLException {//muestre la clasificación final del mundial ordenada por puntos de los pilotos.
 
-        String consultaSQL = "SELECT d.forename, d.surname, r.points "+
+        String consultaSQL = "SELECT d.forename, d.surname, SUM(r.points) AS puntos_totales "+
                              "FROM drivers as d "+
                              "JOIN results as r ON d.driverid = r.driverid "+
-                             "ORDER BY r.points DESC";
+                "GROUP BY d.driverid, d.forename, d.surname "+
+                             "ORDER BY puntos_totales DESC";
 
         PreparedStatement consulta = conexion.prepareStatement(consultaSQL);
         ResultSet resultados = consulta.executeQuery();
@@ -151,19 +131,19 @@ public class OperacionesCRUDPilotos {
         while (resultados.next()) {
             System.out.println("Nombre: " + resultados.getString("forename")+
             " Apellido: "+resultados.getString("surname")+
-            " Puntos: " + resultados.getInt("points"));
+            " Puntos: " + resultados.getInt("puntos_totales"));
         }
 
         consulta.close();
     }
     public void MostrarClasificacionConstructores(Connection conexion) throws SQLException {
 
-        String consultaSQL = "SELECT c.name AS constructor_name, SUM(r.points) AS total_points\n" +
+        String consultaSQL = "SELECT c.name AS constructor_name, SUM(r.points) AS puntos_totales\n" +
                              "FROM constructors c\n" +
                             "JOIN drivers d ON c.constructorid = d.constructorid\n" +
                             "JOIN results r ON d.driverid = r.driverid\n" +
                             "GROUP BY c.constructorid, constructor_name\n" +
-                            "ORDER BY total_points DESC";
+                            "ORDER BY puntos_totales DESC";
 
         PreparedStatement consulta = conexion.prepareStatement(consultaSQL);
         ResultSet resultados = consulta.executeQuery();
@@ -173,7 +153,7 @@ public class OperacionesCRUDPilotos {
 
         while (resultados.next()) {
             System.out.println("Nombre equipo: " + resultados.getString("constructor_name")+
-                    " Puntos equipo: " + resultados.getInt("total_points"));
+                    " Puntos equipo: " + resultados.getInt("puntos_totales"));
         }
 
         consulta.close();
