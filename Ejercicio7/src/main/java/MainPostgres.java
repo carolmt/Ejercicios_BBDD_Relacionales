@@ -1,6 +1,7 @@
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.time.LocalDate;
 
 public class MainPostgres {
     public static void main(String[] args) {
@@ -13,7 +14,8 @@ public class MainPostgres {
                 // Para desactivar la confirmación automática e iniciar así una transacción, invocamos el método Connection.setAutoCommit(false)
                 conexion.setAutoCommit(false);
 
-
+                Piloto p = new Piloto("SAI", "Carlos", "Sainz", LocalDate.of(1994, 9, 1), "Spanish", "https://en.wikipedia.org/wiki/Carlos_Sainz_Jr.");
+                Piloto p2 = new Piloto();
 
 
 
