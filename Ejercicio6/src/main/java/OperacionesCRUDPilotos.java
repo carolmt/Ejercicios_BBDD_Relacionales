@@ -129,8 +129,8 @@ public class OperacionesCRUDPilotos {
         System.out.println("------------------------------");
 
         while (resultados.next()) {
-            System.out.println("Nombre: " + resultados.getString("forename")+
-            " Apellido: "+resultados.getString("surname")+
+            System.out.println( resultados.getString("forename")+
+            " "+resultados.getString("surname")+
             " Puntos: " + resultados.getInt("puntos_totales"));
         }
 
