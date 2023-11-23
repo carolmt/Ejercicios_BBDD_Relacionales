@@ -1,50 +1,39 @@
+import java.io.IOException;
 import java.sql.*;
 
 public class ManejoPostgres {
 
-    public void insercionPiloto(Piloto p, Connection conexion) {
+    public void insercionPiloto(Piloto p, Connection conexion) throws SQLException {
 
         String insertarPiloto = "INSERT INTO drivers (code, forename, surname, dob, nationality, constructorid, url) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+                "VALUES (?, ?, ?, ?, ?, ?, ?)" ;
 
-        try (PreparedStatement sentencia = conexion.prepareStatement(insertarPiloto, PreparedStatement.RETURN_GENERATED_KEYS);) {
+       PreparedStatement sentencia = conexion.prepareStatement(insertarPiloto, PreparedStatement.RETURN_GENERATED_KEYS);
             // Añadir el parámetro PreparedStatement.RETURN_GENERATED_KEYS nos permite recuperar las claves generadas
 
             sentencia.setString(1, p.getCode());
             sentencia.setString(2, p.getForename());
             sentencia.setString(3, p.getSurname());
-            sentencia.setString(4, p.getDobString());
+            sentencia.setDate(4, p.getDob());
             sentencia.setString(5, p.getNationality());
             sentencia.setInt(6, p.getConstructorid());
             sentencia.setString(7, p.getUrl());
 
             sentencia.executeUpdate();
-            sentencia.close();
 
             ResultSet rs = sentencia.getGeneratedKeys();
             rs.next();
             int driverid = rs.getInt(1);
             System.out.println("El driver id nuevo es "+driverid);
-
-        } catch (SQLException ex1) {
-            System.err.println(ex1.getClass().getName() + ": " + ex1.getMessage());
-            try {
-                conexion.rollback();
-                System.err.println("ROLLBACK ejecutado");
-            } catch (SQLException ex2) {
-                System.err.println("Error haciendo ROLLBACK");
-            }
-        }
     }
 
-    public void insercionEquipo(Equipo e, Connection conexion) {
-        String insertarPiloto = "INSERT INTO constructors (constructorref, name, nationality, url) " +
-                "VALUES (?, ?, ?, ?)";
-        /*String insertarPiloto = "INSERT INTO constructors (constructorref, name, nationality, url) " +
-                "VALUES (?, ?, ?, ?) " +
-                "ON CONFLICT (constructorref) DO NOTHING";*/
+    public int insercionEquipo(Equipo e, Connection conexion) throws SQLException {
+        String insertarEquipo = "INSERT INTO constructors (constructorref, name, nationality, url) " +
+                "VALUES (?, ?, ?, ?)"+
+                " ON CONFLICT (constructorid) DO NOTHING RETURNING constructorid;";
+        int constructorid;
 
-        try (PreparedStatement sentencia = conexion.prepareStatement(insertarPiloto, PreparedStatement.RETURN_GENERATED_KEYS);) {
+        PreparedStatement sentencia = conexion.prepareStatement(insertarEquipo, PreparedStatement.RETURN_GENERATED_KEYS);
 
             sentencia.setString(1, e.getConstructorref());
             sentencia.setString(2, e.getName());
@@ -52,22 +41,12 @@ public class ManejoPostgres {
             sentencia.setString(4, e.getUrl());
 
             sentencia.executeUpdate();
-            sentencia.close();
-
             ResultSet rs = sentencia.getGeneratedKeys();
             rs.next();
-            int constructorid = rs.getInt(1);
+            constructorid = rs.getInt(1);
             System.out.println("El id del equipo nuevo es "+ constructorid);
 
-        } catch (SQLException ex1) {
-            System.err.println(ex1.getClass().getName() + ": " + ex1.getMessage());
-            try {
-                conexion.rollback();
-                System.err.println("ROLLBACK ejecutado");
-            } catch (SQLException ex2) {
-                System.err.println("Error haciendo ROLLBACK");
-            }
-        }
+            return constructorid;
     }
 
     public void mostrarPilotos (Connection conexion) {
@@ -111,31 +90,23 @@ public class ManejoPostgres {
         }
     }
 
-    public void resultadoCarreraPiloto (int driverid, Connection conexion) {//
+    public void resultadoCarreraPiloto (String code, Connection conexion) {//
 
-        try (CallableStatement resCarreraPiloto = conexion.prepareCall("{call get_results_by_driver(?)}");) {
+        try (CallableStatement resCarreraPiloto = conexion.prepareCall("{call get_results_by_driver(?) }");) {
 
+            resCarreraPiloto.setString(1, code);
 
-            resCarreraPiloto.setInt(1, driverid);
-            resCarreraPiloto.execute();
             ResultSet resultados = resCarreraPiloto.executeQuery();
 
-            resultados = resCarreraPiloto.getResultSet();
-
             while (resultados.next()) {
-                System.out.format(resultados.getInt("driverid") +
-                        resultados.getString("code") +
-                        resultados.getString("forename") +
-                        resultados.getDouble("surname") +
-                        resultados.getString("dob") +
-                        resultados.getString("nationality") +
-                        resultados.getInt("constructorid") +
-                        resultados.getString("url"));
+                System.out.format(resultados.getInt("round") +
+                        resultados.getString("circuit") +
+                        resultados.getInt("result") +
+                        resultados.getInt("points") +
+                        resultados.getDate("date"));
+
             }
 
-            conexion.commit();
-            // Es buena práctica volver a activar la confirmación automática
-            conexion.setAutoCommit(true);
         } catch (SQLException ex1) {
             System.err.println(ex1.getClass().getName() + ": " + ex1.getMessage());
 
@@ -143,29 +114,16 @@ public class ManejoPostgres {
     }
     public void clasificacionMundial (Connection conexion) {
 
-        try (CallableStatement clasMundial = conexion.prepareCall("{get_drivers_standings()}");) {
+        try (CallableStatement clasMundial = conexion.prepareCall("{call get_drivers_standings() }");) {
 
-            clasMundial.execute();
             ResultSet resultados = clasMundial.executeQuery();
 
-            resultados = clasMundial.getResultSet();
-
             while (resultados.next()) {
-                int posicion = 1;
-                System.out.println(posicion+".");
-                System.out.format(resultados.getInt("driverid") +
-                        resultados.getString("code") +
-                        resultados.getString("forename") +
-                        resultados.getDouble("surname") +
-                        resultados.getString("dob") +
-                        resultados.getString("nationality") +
-                        resultados.getInt("constructorid") +
-                        resultados.getString("url"));
-                posicion ++;
+                String driverName = resultados.getString("driver");
+                long totalPoints = resultados.getLong("points");
+                System.out.printf("Driver Name: %s, Total Points: %d%n", driverName, totalPoints);
             }
 
-            conexion.commit();
-            conexion.setAutoCommit(true);
         } catch (SQLException ex1) {
             System.err.println(ex1.getClass().getName() + ": " + ex1.getMessage());
 
