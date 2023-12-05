@@ -46,21 +46,35 @@ public class OperacionesCRUDPilotos {
         return listaPilotos;
     }
 
+
     public void ActualizarPiloto(Piloto p, MongoCollection<Piloto> collection) { // actualice los datos del registro coincidente en la base de datos con el mismo driverid.
 
-        p = collection.find(eq("driverid", p.getDriverid())).first();
-        if (p != null) {
-            collection.replaceOne(eq("driverid", p.getDriverid()), p);
-            System.out.println("Piloto atualizado:");
-            System.out.println("Driverid : "+ p.getDriverid()+
-                                "Code : " + p.getCode()+
-                                "Nombre : " + p.getForename() +
-                                "Apellidos : "+ p.getSurname() +
-                                "Fecha de nacimiento : " + p.getDob() +
-                                "Nacionalidad : " + p.getNationality() +
-                                "URL : " + p.getUrl());
+        Piloto pilotoExistente = collection.find(eq("driverid", p.getDriverid())).first();
+        if (pilotoExistente != null) {
+
+            pilotoExistente.setCode(p.getCode());
+            pilotoExistente.setForename(p.getForename());
+            pilotoExistente.setSurname(p.getSurname());
+            pilotoExistente.setDob(p.getDob());
+            pilotoExistente.setNationality(p.getNationality());
+            pilotoExistente.setUrl(p.getUrl());
+
+            // Ahora, realiza la actualización en la base de datos
+            collection.replaceOne(eq("driverid", p.getDriverid()), pilotoExistente);
+
+            System.out.println("Piloto actualizado:");
+            System.out.println("Driverid : " + pilotoExistente.getDriverid() +
+                    " Code : " + pilotoExistente.getCode() +
+                    " Nombre : " + pilotoExistente.getForename() +
+                    " Apellidos : " + pilotoExistente.getSurname() +
+                    " Fecha de nacimiento : " + pilotoExistente.getDob() +
+                    " Nacionalidad : " + pilotoExistente.getNationality() +
+                    " URL : " + pilotoExistente.getUrl());
+        } else {
+            System.out.println("No se encontró ningún piloto con el driverid proporcionado.");
         }
     }
+
 
     public void BorrarPiloto(Piloto p, MongoCollection<Piloto> collection) {
         collection.deleteOne(eq("driverid", p.getDriverid()));
